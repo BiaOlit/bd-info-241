@@ -1,0 +1,79 @@
+Atividade 6 - Banco de Dados
+
+from typing import Union
+from fastapi import FastAPI
+from pydantic import BaseModel
+import sqlite3
+
+conn = sqlite3.connect('dbalunos.db')
+cursor = conn.cursor()
+
+cursor.execute('''
+    CREATE TABLE IF NOT EXISTS TB_ALUNO (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        aluno_nome TEXT(50),
+        endereco TEXT(100)
+    )
+''')
+
+conn.commit()
+conn.close()
+
+
+app = FastAPI()
+class Aluno(BaseModel):
+  aluno_nome: str
+  endereco: str
+
+@app.post("/criar_aluno/")
+def criar_aluno(aluno: Aluno):
+    conn = sqlite3.connect('dbalunos.db')
+    cursor = conn.cursor()
+    cursor.execute('INSERT INTO TB_ALUNO (aluno_nome, endereco) VALUES (?, ?)',
+                   (aluno.aluno_nome, aluno.endereco))
+    conn.commit()
+    conn.close()
+    return {"message": "Aluno criado com sucesso"}
+
+
+@app.get("/listar_alunos/")
+def listar_alunos():
+    conn = sqlite3.connect('dbalunos.db')
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM TB_ALUNO')
+    alunos = cursor.fetchall()
+    conn.close()
+    return alunos
+
+@app.get("/listar_um_aluno/{aluno_id}")
+def listar_um_aluno(aluno_id: int):
+    conn = sqlite3.connect('dbalunos.db')
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM TB_ALUNO WHERE id = ?', (aluno_id,))
+    aluno = cursor.fetchone()
+    conn.close()
+    if aluno:
+        return aluno
+    else:
+        return {"message": "Aluno não encontrado"} 
+      
+@app.put("/atualizar_aluno/{aluno_id}")
+def atualizar_aluno(aluno_id: int, aluno: Aluno):
+      conn = sqlite3.connect('dbalunos.db')
+      cursor = conn.cursor()
+      cursor.execute('UPDATE TB_ALUNO SET aluno_nome = ?, endereco = ? WHERE id = ?',
+     (aluno.aluno_nome, aluno.endereco, aluno_id))
+      conn.commit()
+      conn.close()
+      return {"message": "Aluno atualizado com sucesso"}
+
+@app.delete("/excluir_aluno/{aluno_id}")
+def excluir_aluno(aluno_id: int):
+    conn = sqlite3.connect('dbalunos.db')
+    cursor = conn.cursor()
+    cursor.execute('DELETE FROM TB_ALUNO WHERE id = ?', 
+    (aluno_id,))
+    conn.commit()
+    conn.close()
+    return {"message": "Aluno excluído com sucesso"}
+
